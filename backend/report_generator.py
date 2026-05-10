@@ -15,7 +15,7 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 REPORT_DIR = Path(__file__).parent / "reports"
 REPORT_DIR.mkdir(exist_ok=True)
 
-CMV4_DSN = "dbname=cmv4_dashboard user=cmv4_writer password=CMv4-Dashboard-2026! host=127.0.0.1"
+from env_config import CMV4_DSN
 
 report_router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))

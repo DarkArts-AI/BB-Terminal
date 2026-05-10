@@ -3,17 +3,27 @@ export type FunctionCode =
   | "DES" | "GP" | "QR" | "HP"
   | "FA" | "KEY" | "DVD" | "EE" | "NI"
   | "WEI" | "MOV" | "OMON"
-  | "CURV" | "FXC" | "CRYPTO";
+  | "CURV" | "FXC" | "CRYPTO"
+  | "COMP" | "ALPHA" | "BRAVO" | "CHARLIE" | "PORT" | "ISP" | "COV" | "NARV";
 
 export interface FunctionDef {
   code: FunctionCode;
   name: string;
   needsSymbol: boolean;
-  group: "Security" | "Markets" | "Macro" | "System";
+  group: "Security" | "Markets" | "Macro" | "System" | "Cortex-Medusa";
   summary: string;
 }
 
 export const FUNCTIONS: FunctionDef[] = [
+  { code: "COMP",    name: "Competition",           needsSymbol: false, group: "Cortex-Medusa", summary: "Alpha vs Bravo vs Charlie — leaderboard, NAV, pipeline status" },
+  { code: "ALPHA",   name: "Alpha Dashboard",       needsSymbol: false, group: "Cortex-Medusa", summary: "CF-01 · Codex CLI · Portfolio 2A · Research, trades, reconciliation" },
+  { code: "BRAVO",   name: "Bravo Dashboard",       needsSymbol: false, group: "Cortex-Medusa", summary: "CF-02 · Gemini CLI · Portfolio 2B · Research, trades, reconciliation" },
+  { code: "CHARLIE", name: "Charlie Dashboard",     needsSymbol: false, group: "Cortex-Medusa", summary: "CF-03 · Claude Code · Portfolio 2C · Research, trades, reconciliation" },
+  { code: "PORT",    name: "Portfolio Manager",      needsSymbol: false, group: "Cortex-Medusa", summary: "Create portfolios, simulate trades, manage cash — unified leaderboard" },
+  { code: "ISP",     name: "Issued Stock Program",   needsSymbol: false, group: "Cortex-Medusa", summary: "Track stock issued in lieu of payment — lots, sales, tax summary" },
+  { code: "COV",     name: "Coverage Map",          needsSymbol: false, group: "Cortex-Medusa", summary: "Fleet watchlist coverage, convergence alerts, KPI dashboard" },
+  { code: "NARV",    name: "Pipeline Narrative",    needsSymbol: false, group: "Cortex-Medusa", summary: "Conversation-style pipeline display with debate rounds" },
+
   { code: "CC",   name: "Command Center",        needsSymbol: false, group: "System", summary: "Morning briefing · markets, curve, FX, movers, news" },
   { code: "HELP", name: "Function Directory",    needsSymbol: false, group: "System", summary: "List of all terminal functions" },
 
@@ -44,7 +54,6 @@ export interface ParsedCommand {
   code: FunctionCode;
 }
 
-/** Parse a free-form command like "AAPL DES", "DES", "AAPL", "TOP". */
 export function parseCommand(raw: string, activeSymbol: string | null): ParsedCommand | null {
   const parts = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return null;
@@ -61,14 +70,11 @@ export function parseCommand(raw: string, activeSymbol: string | null): ParsedCo
       }
       return { code: p };
     }
-    // just a symbol — default to INTEL (the scorecard view)
     return { symbol: p, code: "INTEL" };
   }
 
-  // Two or more tokens: SYMBOL FUNC
   const [sym, fn] = parts;
   if (isFn(fn)) return { symbol: sym, code: fn };
-  // FUNC SYMBOL (also allowed)
   if (isFn(sym)) {
     const f = FN_BY_CODE[sym];
     return f.needsSymbol ? { symbol: fn, code: sym } : { code: sym };

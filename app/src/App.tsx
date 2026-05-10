@@ -26,7 +26,24 @@ import { CURV } from "@/functions/CURV";
 import { FXC } from "@/functions/FXC";
 import { CRYPTO } from "@/functions/CRYPTO";
 
+import { COMP } from "@/functions/COMP";
+import { ALPHA } from "@/functions/ALPHA";
+import { BRAVO } from "@/functions/BRAVO";
+import { CHARLIE } from "@/functions/CHARLIE";
+import { PORT } from "@/functions/PORT";
+import { ISP } from "@/functions/ISP";
+import { COV } from "@/functions/COV";
+import { NARV } from "@/functions/NARV";
+
 const SCREENS: Record<string, (symbol?: string) => JSX.Element> = {
+  COMP: () => <COMP />,
+  ALPHA: () => <ALPHA />,
+  BRAVO: () => <BRAVO />,
+  CHARLIE: () => <CHARLIE />,
+  PORT: () => <PORT />,
+  ISP: () => <ISP />,
+  COV: () => <COV />,
+  NARV: () => <NARV />,
   CC: () => <CC />,
   INTEL: (s) => <INTEL symbol={s!} />,
   HELP: () => <HELP />,
@@ -69,5 +86,4 @@ export default function App() {
   );
 }
 
-// Ensure FUNCTIONS is kept (for autocomplete discovery)
 void FUNCTIONS;

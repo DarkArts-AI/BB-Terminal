@@ -52,7 +52,7 @@ export function CommandBar() {
     <div className="flex items-center h-10 bg-term-panel border-b border-term-border px-3 gap-4">
       <div className="flex items-center gap-2 select-none">
         <span className="w-1.5 h-1.5 bg-term-amber shadow-[0_0_6px_rgba(255,140,0,0.9)]" />
-        <span className="text-term-amber font-bold tracking-[0.3em] text-[11px]">BBTERMINAL</span>
+        <span className="text-term-amber font-bold tracking-[0.3em] text-[11px]">CORTEX-MEDUSA V4</span>
       </div>
 
       <div className="flex items-center gap-2 flex-1 relative">

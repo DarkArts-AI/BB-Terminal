@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@page {
+  size: letter;
+  margin: 0.85in 0.75in;
+  @bottom-center { content: "Dark Arts Consulting — Confidential"; font-size: 8pt; color: #999; }
+  @bottom-right { content: "Page " counter(page); font-size: 8pt; color: #999; }
+}
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 10.5pt; line-height: 1.5; color: #1a1a1a; }
+h1 { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 20pt; color: #04600B; border-bottom: 3px solid #04600B; padding-bottom: 6px; margin-top: 0; }
+h2 { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 14pt; color: #04600B; border-bottom: 1px solid #ccc; padding-bottom: 3px; margin-top: 25px; page-break-after: avoid; }
+h3 { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12pt; color: #333; margin-top: 15px; page-break-after: avoid; }
+.header-block { background: #04600B; color: white; padding: 25px 20px; margin: -0.1in -0.05in 20px -0.05in; }
+.header-block h1 { color: white; border: none; font-size: 22pt; margin: 0 0 4px 0; padding: 0; }
+.header-block .subtitle { font-size: 13pt; font-style: italic; opacity: 0.9; }
+.header-block .meta { font-size: 9pt; margin-top: 12px; opacity: 0.8; font-family: 'Helvetica Neue', sans-serif; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.5pt; }
+th { background: #f0f4f0; color: #04600B; font-family: 'Helvetica Neue', sans-serif; font-weight: 600; text-align: left; padding: 6px 8px; border-bottom: 2px solid #04600B; }
+td { padding: 5px 8px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #fafafa; }
+.chat-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 12px; margin: 10px 0; font-family: Menlo, "Courier New", monospace; font-size: 8.5pt; line-height: 1.5; }
+.chat-box .channel { font-family: 'Helvetica Neue', sans-serif; font-weight: 700; color: #04600B; border-bottom: 1px solid #dee2e6; padding-bottom: 4px; margin-bottom: 8px; font-size: 9pt; }
+.chat-msg { margin: 8px 0; padding-left: 10px; border-left: 3px solid #ccc; }
+.chat-msg.bull { border-left-color: #28a745; }
+.chat-msg.bear { border-left-color: #dc3545; }
+.chat-msg.manager { border-left-color: #04600B; }
+.chat-msg.trader { border-left-color: #fd7e14; }
+.chat-msg.aggressive { border-left-color: #dc3545; }
+.chat-msg.conservative { border-left-color: #007bff; }
+.chat-msg.neutral { border-left-color: #6c757d; }
+.chat-msg.alpha { border-left-color: #1601D6; }
+.chat-msg.bravo { border-left-color: #8F3823; }
+.chat-msg.charlie { border-left-color: #747904; }
+.chat-msg .speaker { font-family: 'Helvetica Neue', sans-serif; font-weight: 700; font-size: 8.5pt; }
+.chat-msg .speaker .time { font-weight: 400; color: #999; margin-left: 8px; }
+.chat-msg .body { margin-top: 2px; font-family: Georgia, serif; font-size: 9.5pt; }
+.chat-msg .body h1, .chat-msg .body h2, .chat-msg .body h3, .chat-msg .body h4 {
+  font-family: 'Helvetica Neue', Arial, sans-serif; color: #333; margin: 10px 0 4px 0; padding: 0; border: none;
+}
+.chat-msg .body h3 { font-size: 10.5pt; color: #04600B; margin-top: 12px; }
+.chat-msg .body h4 { font-size: 9.5pt; color: #555; margin-top: 8px; }
+.chat-msg .body p { margin: 4px 0; }
+.chat-msg .body ul, .chat-msg .body ol { margin: 4px 0 4px 18px; padding: 0; }
+.chat-msg .body li { margin: 2px 0; }
+.chat-msg .body strong { color: #1a1a1a; }
+.chat-msg .body table { font-size: 8.5pt; margin: 6px 0; }
+.callout + div h2, .callout + div h3, .callout + div h4 {
+  font-family: 'Helvetica Neue', Arial, sans-serif; color: #04600B; margin: 10px 0 4px 0; padding: 0; border: none;
+}
+.callout + div h2 { font-size: 12pt; }
+.callout + div h3 { font-size: 10.5pt; }
+.callout + div h4 { font-size: 9.5pt; color: #555; }
+.callout + div p { margin: 4px 0; }
+.callout + div ul, .callout + div ol { margin: 4px 0 4px 18px; padding: 0; }
+.callout + div li { margin: 2px 0; }
+.chat-msg .body code { background: #e8e8e8; padding: 1px 4px; border-radius: 2px; font-size: 8pt; }
+.callout { background: #e8f5e9; border-left: 4px solid #04600B; padding: 8px 12px; margin: 10px 0; font-size: 9.5pt; }
+.callout.warn { background: #fff3cd; border-left-color: #ffc107; }
+.rating-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-family: 'Helvetica Neue', sans-serif; font-weight: 700; font-size: 10pt; }
+.rating-buy { background: #e8f5e9; color: #2e7d32; border: 1px solid #2e7d32; }
+.rating-sell { background: #ffebee; color: #c62828; border: 1px solid #c62828; }
+.rating-hold { background: #fff8e1; color: #f57f17; border: 1px solid #f57f17; }
+.rating-underweight { background: #fce4ec; color: #ad1457; border: 1px solid #ad1457; }
+.rating-overweight { background: #e8f5e9; color: #1b5e20; border: 1px solid #1b5e20; }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0; }
+.kpi-box { border: 1px solid #ddd; border-radius: 4px; padding: 8px; text-align: center; }
+.kpi-box .value { font-family: 'Helvetica Neue', sans-serif; font-size: 16pt; font-weight: 700; color: #04600B; }
+.kpi-box .label { font-size: 8pt; color: #666; text-transform: uppercase; }
+.page-break { page-break-before: always; }
+.convergence-tag { display: inline-block; padding: 2px 6px; margin: 1px; border-radius: 3px; font-size: 8pt; font-family: Menlo, monospace; background: #fff3cd; border: 1px solid #ffc107; color: #856404; }
+</style>
+</head>
+<body>
+
+<div class="header-block">
+  <h1>{{ title }}{% if cycle is defined and cycle.company_name %} — {{ cycle.company_name }}{% elif company_name is defined %} — {{ company_name }}{% endif %}</h1>
+  <div class="subtitle">{{ subtitle }}</div>
+  <div class="meta">
+    Prepared by: Sentinel-DAC, Chief Engineer &nbsp;|&nbsp; Generated: {{ generated_at }}<br>
+    Classification: Internal &mdash; Dark Arts Consulting<br>
+    For: Dr. Lee Solt, Principal
+  </div>
+</div>
+
+{% if report_type == 'cycle' %}
+<!-- ============= CYCLE NARRATIVE REPORT ============= -->
+
+<h2>1. Cycle Summary</h2>
+<table>
+<tr><th>Field</th><th>Value</th></tr>
+<tr><td>Cycle ID</td><td><code>{{ cycle.cycle_id }}</code></td></tr>
+<tr><td>Agent</td><td>{{ cycle.agent }}</td></tr>
+<tr><td>Symbol</td><td><strong>{{ cycle.symbol }}</strong>{% if cycle.company_name %} — {{ cycle.company_name }}{% endif %}</td></tr>
+<tr><td>Rating</td><td><span class="rating-badge rating-{{ cycle.final_rating|lower|replace(' ', '') }}">{{ cycle.final_rating }}</span></td></tr>
+<tr><td>Started</td><td>{{ cycle.started_at }}</td></tr>
+<tr><td>Completed</td><td>{{ cycle.completed_at }}</td></tr>
+<tr><td>LLM Backend</td><td>{{ cycle.llm_backend }}</td></tr>
+{% if cycle.thread_id %}<tr><td>Thread ID</td><td><code>{{ cycle.thread_id }}</code></td></tr>{% endif %}
+</table>
+
+{% if analysts %}
+<h2>2. Analyst Channel</h2>
+<div class="chat-box">
+  <div class="channel">#research-{{ cycle.symbol }}</div>
+  {% for a in analysts %}
+  <div class="chat-msg">
+    <div class="speaker">[{{ a.label }}] {{ a.speaker }} {% if a.time %}<span class="time">{{ a.time }}</span>{% endif %}</div>
+    <div class="body">{{ a.content[:3000]|md|safe }}{% if a.content|length > 3000 %}<p><em>(truncated)</em></p>{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if debate_rounds %}
+<h2>3. Research Debate</h2>
+{% for round_group in debate_rounds_grouped %}
+<div class="chat-box">
+  <div class="channel">#debate-{{ cycle.symbol }} &mdash; {{ round_group.type_label }} &mdash; Round {{ round_group.round }}/5</div>
+  {% for msg in round_group.messages %}
+  <div class="chat-msg {{ msg.css_class }}">
+    <div class="speaker">[{{ msg.label }}] {{ msg.speaker }} {% if msg.time %}<span class="time">{{ msg.time }}</span>{% endif %}</div>
+    <div class="body">{{ msg.content[:3000]|md|safe }}{% if msg.content|length > 3000 %}<p><em>(truncated)</em></p>{% endif %}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+
+{% if other_stages %}
+<h2>{% if debate_rounds %}4{% else %}3{% endif %}. Pipeline Stages</h2>
+{% for s in other_stages %}
+<div class="chat-box">
+  <div class="channel">#{{ s.stage|lower }}-{{ cycle.symbol }}</div>
+  <div class="chat-msg {{ s.css_class }}">
+    <div class="speaker">[{{ s.label }}] {{ s.speaker }} {% if s.time %}<span class="time">{{ s.time }}</span>{% endif %}</div>
+    <div class="body">{{ s.content[:3000]|md|safe }}{% if s.content|length > 3000 %}<p><em>(truncated)</em></p>{% endif %}</div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if decision %}
+<h2>{% if debate_rounds %}5{% else %}4{% endif %}. Portfolio Manager Decision</h2>
+<div class="callout">
+<strong>Rating:</strong> <span class="rating-badge rating-{{ decision.rating|lower|replace(' ', '') }}">{{ decision.rating }}</span><br>
+{% if decision.direction %}<strong>Direction:</strong> {{ decision.direction }}<br>{% endif %}
+{% if decision.conviction %}<strong>Conviction:</strong> {{ decision.conviction }}/10<br>{% endif %}
+</div>
+{% if decision.executive_summary %}<div style="margin-top:10px"><strong>Executive Summary:</strong>{{ decision.executive_summary|md|safe }}</div>{% endif %}
+{% if decision.investment_thesis %}<div style="margin-top:10px"><strong>Investment Thesis:</strong>{{ decision.investment_thesis|md|safe }}</div>{% endif %}
+{% if decision.risk_notes %}<div style="margin-top:10px"><strong>Risk Notes:</strong>{{ decision.risk_notes|md|safe }}</div>{% endif %}
+{% endif %}
+
+{% elif report_type == 'coverage' %}
+<!-- ============= COVERAGE & WATCHLIST REPORT ============= -->
+
+<h2>1. Fleet Coverage Summary</h2>
+<div class="kpi-grid">
+  <div class="kpi-box"><div class="value">{{ total_unique }}</div><div class="label">Unique Securities</div></div>
+  <div class="kpi-box"><div class="value">{{ triple_count }}</div><div class="label">Triple Convergence</div></div>
+  <div class="kpi-box"><div class="value">{{ total_entries }}</div><div class="label">Total Watchlist Entries</div></div>
+</div>
+
+<h2>2. Per-Agent Watchlists</h2>
+<table>
+<tr><th>Agent</th><th>Total</th><th>HIGH</th><th>MEDIUM</th><th>LOW</th><th>Cycles/24h</th><th>Symbols Analyzed</th></tr>
+{% for a in agent_stats %}
+<tr>
+  <td><strong>{{ a.agent }}</strong></td>
+  <td>{{ a.total }}</td>
+  <td style="color:#dc3545">{{ a.high }}</td>
+  <td>{{ a.medium }}</td>
+  <td style="color:#6c757d">{{ a.low }}</td>
+  <td>{{ a.cycles_24h }}</td>
+  <td>{{ a.symbols_analyzed }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h2>3. Convergence Watchlist</h2>
+<p>Stocks independently discovered by all three agents — highest-conviction signals:</p>
+<p>
+{% for sym in convergence_triple %}
+<span class="convergence-tag">{{ sym }}</span>
+{% endfor %}
+</p>
+
+{% if convergence_dual %}
+<h3>Dual-Agent Overlap (2 of 3)</h3>
+<p>
+{% for sym in convergence_dual[:80] %}
+<span class="convergence-tag" style="background:#e8f4f8;border-color:#17a2b8;color:#0c5460;">{{ sym }}</span>
+{% endfor %}
+{% if convergence_dual|length > 80 %}<em>...and {{ convergence_dual|length - 80 }} more</em>{% endif %}
+</p>
+{% endif %}
+
+<div class="page-break"></div>
+<h2>4. Coverage Overlap Analysis</h2>
+<table>
+<tr><th>Segment</th><th>Count</th><th>% of Total</th></tr>
+<tr><td>Alpha only</td><td>{{ venn.alpha_only|length }}</td><td>{{ '%.1f'|format(venn.alpha_only|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td>Bravo only</td><td>{{ venn.bravo_only|length }}</td><td>{{ '%.1f'|format(venn.bravo_only|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td>Charlie only</td><td>{{ venn.charlie_only|length }}</td><td>{{ '%.1f'|format(venn.charlie_only|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td>Alpha + Bravo</td><td>{{ venn.alpha_bravo|length }}</td><td>{{ '%.1f'|format(venn.alpha_bravo|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td>Alpha + Charlie</td><td>{{ venn.alpha_charlie|length }}</td><td>{{ '%.1f'|format(venn.alpha_charlie|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td>Bravo + Charlie</td><td>{{ venn.bravo_charlie|length }}</td><td>{{ '%.1f'|format(venn.bravo_charlie|length / total_unique * 100 if total_unique else 0) }}%</td></tr>
+<tr><td><strong>All Three</strong></td><td><strong>{{ venn.all_three|length }}</strong></td><td><strong>{{ '%.1f'|format(venn.all_three|length / total_unique * 100 if total_unique else 0) }}%</strong></td></tr>
+</table>
+
+{% elif report_type == 'case_study' %}
+<!-- ============= CASE STUDY REPORT ============= -->
+
+<h2>1. Thesis Origin</h2>
+<p>{{ origin_narrative }}</p>
+
+{% if thread_events %}
+<h2>2. Provenance Chain</h2>
+<table>
+<tr><th>Seq</th><th>Event</th><th>Agent</th><th>Rating</th><th>Date</th></tr>
+{% for e in thread_events %}
+<tr>
+  <td>{{ e.sequence }}</td>
+  <td>{{ e.relationship }}</td>
+  <td>{{ e.agent }}</td>
+  <td>{% if e.rating %}<span class="rating-badge rating-{{ e.rating|lower|replace(' ', '') }}">{{ e.rating }}</span>{% else %}&mdash;{% endif %}</td>
+  <td>{{ e.completed_at or e.started_at or '&mdash;' }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% for cycle_detail in cycle_details %}
+<div class="page-break"></div>
+<h2>{{ loop.index + 1 }}. {{ cycle_detail.agent }} Analysis — {{ cycle_detail.symbol }}</h2>
+<div class="callout">
+<strong>Cycle:</strong> <code>{{ cycle_detail.cycle_id }}</code> &nbsp;|&nbsp;
+<strong>Rating:</strong> <span class="rating-badge rating-{{ cycle_detail.final_rating|lower|replace(' ', '') }}">{{ cycle_detail.final_rating }}</span> &nbsp;|&nbsp;
+<strong>Date:</strong> {{ cycle_detail.completed_at }}
+</div>
+
+{% for s in cycle_detail.stages %}
+<div class="chat-box">
+  <div class="channel">#{{ s.stage|lower }}-{{ cycle_detail.symbol }}</div>
+  <div class="chat-msg {{ s.css_class }}">
+    <div class="speaker">[{{ s.label }}] {{ s.speaker }} {% if s.time %}<span class="time">{{ s.time }}</span>{% endif %}</div>
+    <div class="body">{{ s.content[:2000]|md|safe }}{% if s.content|length > 2000 %}<p><em>(truncated)</em></p>{% endif %}</div>
+  </div>
+</div>
+{% endfor %}
+{% endfor %}
+
+{% if comparison %}
+<div class="page-break"></div>
+<h2>{{ cycle_details|length + 2 }}. Orchestrator Comparison</h2>
+<table>
+<tr><th>Dimension</th>{% for c in comparison.agents %}<th>{{ c }}</th>{% endfor %}</tr>
+{% for row in comparison.rows %}
+<tr>
+  <td><strong>{{ row.label }}</strong></td>
+  {% for val in row['values'] %}<td>{{ val }}</td>{% endfor %}
+</tr>
+{% endfor %}
+</table>
+<div class="callout">
+<strong>Key Divergence:</strong> {{ comparison.divergence_summary }}
+</div>
+{% endif %}
+
+{% endif %}
+
+</body>
+</html>

@@ -5,19 +5,25 @@ import { cn } from "@/lib/cn";
 interface Btn { code: FunctionCode; label: string; }
 
 const BUTTONS: Btn[] = [
-  { code: "CC",     label: "Home" },
-  { code: "INTEL",  label: "Intel" },
-  { code: "GP",     label: "Chart" },
-  { code: "KEY",    label: "Ratios" },
-  { code: "FA",     label: "Financials" },
-  { code: "OMON",   label: "Options" },
-  { code: "NI",     label: "News" },
-  { code: "MOV",    label: "Movers" },
-  { code: "WEI",    label: "Global" },
-  { code: "CRYPTO", label: "Crypto" },
-  { code: "FXC",    label: "FX" },
-  { code: "CURV",   label: "Yields" },
-  { code: "HELP",   label: "Help" },
+  { code: "PORT",    label: "Portfolio" },
+  { code: "ISP",     label: "Stock Prog" },
+  { code: "COMP",    label: "Competition" },
+  { code: "ALPHA",   label: "Alpha" },
+  { code: "BRAVO",   label: "Bravo" },
+  { code: "CHARLIE", label: "Charlie" },
+  { code: "COV",     label: "Coverage" },
+  { code: "NARV",    label: "Narrative" },
+  { code: "CC",      label: "Markets" },
+  { code: "INTEL",   label: "Intel" },
+  { code: "GP",      label: "Chart" },
+  { code: "KEY",     label: "Ratios" },
+  { code: "FA",      label: "Financials" },
+  { code: "NI",      label: "News" },
+  { code: "MOV",     label: "Movers" },
+  { code: "WEI",     label: "Global" },
+  { code: "CRYPTO",  label: "Crypto" },
+  { code: "CURV",    label: "Yields" },
+  { code: "HELP",    label: "Help" },
 ];
 
 export function QuickBar() {
@@ -27,15 +33,15 @@ export function QuickBar() {
   return (
     <div className="flex items-stretch h-9 bg-term-bg2 border-b border-term-border overflow-x-auto scroll-thin">
       <span className="hidden sm:flex items-center px-3 sub-header shrink-0 border-r border-term-border">
-        QUICK
+        CORTEX-MEDUSA
       </span>
       {BUTTONS.map((b) => {
         const fn = FN_BY_CODE[b.code];
         const isActive = b.code === activeCode;
-        const needsSymbol = fn.needsSymbol;
+        const needsSymbol = fn?.needsSymbol;
         const title = needsSymbol
           ? `${b.code} — ${fn.name} · uses CTX ${activeSymbol ?? "AAPL"}`
-          : `${b.code} — ${fn.name}`;
+          : `${b.code} — ${fn?.name || b.label}`;
         return (
           <button
             key={b.code}

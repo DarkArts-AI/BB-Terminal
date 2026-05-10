@@ -23,8 +23,8 @@ const tabId = (code: string, symbol?: string) => `${code}:${symbol ?? "_"}`;
 export const useWorkspace = create<WorkspaceState>()(
   persist(
     (set, get) => ({
-      tabs: [{ id: "CC:_", code: "CC" }],
-      activeTabId: "CC:_",
+      tabs: [{ id: "COMP:_", code: "COMP" }],
+      activeTabId: "COMP:_",
       activeSymbol: "AAPL",
       openTab: (code, symbol) => {
         const s = symbol?.toUpperCase();
@@ -51,8 +51,8 @@ export const useWorkspace = create<WorkspaceState>()(
         if (remaining.length === 0) {
           // always keep Command Center open as a fallback
           set({
-            tabs: [{ id: "CC:_", code: "CC" }],
-            activeTabId: "CC:_",
+            tabs: [{ id: "COMP:_", code: "COMP" }],
+            activeTabId: "COMP:_",
           });
         }
       },

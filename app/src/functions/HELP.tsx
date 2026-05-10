@@ -10,7 +10,7 @@ export function HELP() {
   return (
     <div className="p-4 flex flex-col gap-5 text-[12px]">
       <div>
-        <div className="text-term-amber text-[11px] tracking-[0.25em] font-bold mb-1">WELCOME TO BBTERMINAL</div>
+        <div className="text-term-amber text-[11px] tracking-[0.25em] font-bold mb-1">WELCOME TO CORTEX-MEDUSA V4</div>
         <div className="text-term-text">
           Type a function code in the command bar above, optionally prefixed with a ticker, then press
           <span className="text-term-amber font-bold mx-1">&lt;GO&gt;</span>
