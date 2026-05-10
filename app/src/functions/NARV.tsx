@@ -247,7 +247,7 @@ export function NARV() {
     },
     refetchInterval: 15_000,
   });
-  const activeRequests: PendingRequest[] = (requestsData?.requests || []).filter((r: PendingRequest) => r.status === "pending" || r.status === "running" || r.status === "timeout");
+  const activeRequests: PendingRequest[] = (requestsData?.requests || []).filter((r: PendingRequest) => r.status === "pending" || r.status === "timeout");
 
   const validateAndSubmit = async () => {
     const sym = reqSymbol ? reqSymbol.trim().toUpperCase() : reqDisplay.trim().toUpperCase().replace(/[^A-Z]/g, "");
@@ -547,17 +547,10 @@ export function NARV() {
                   </td>
                   <td className="px-2 py-1">
                     <span className={cn("text-[9px]",
-                      r.status === "running" ? "text-term-amber" :
                       r.status === "timeout" ? "text-red-400" : "text-term-muted"
                     )}>
-                      {r.status === "running" ? "● running" :
-                       r.status === "timeout" ? "✕ timeout" : "pending"}
+                      {r.status === "timeout" ? "✕ timeout" : "pending"}
                     </span>
-                    {r.status === "running" && r.picked_up_at && (
-                      <span className="text-[8px] text-term-muted ml-1">
-                        {duration(r.picked_up_at, new Date().toISOString())}
-                      </span>
-                    )}
                   </td>
                   <td className="px-2 py-1 text-term-muted">
                     {new Date(r.requested_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
