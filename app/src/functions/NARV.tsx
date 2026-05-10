@@ -1,6 +1,6 @@
 import { downloadCyclePdf, downloadCaseStudyPdf } from "@/lib/narrative_api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { cn } from "@/lib/cn";
 
 const BASE = "/api/v1";
@@ -54,6 +54,10 @@ interface PendingRequest {
   picked_up_by?: string; picked_up_at?: string;
 }
 
+interface SymbolEntry {
+  symbol: string; name: string;
+}
+
 type SortKey = "agent" | "symbol" | "final_rating" | "status" | "duration" | "total_tokens" | "source" | "started_at";
 type SortDir = "asc" | "desc";
 
@@ -97,6 +101,95 @@ function SortHeader({ label, sortKey: sk, current, dir, onSort }: { label: strin
   );
 }
 
+function SymbolAutocomplete({ symbols, value, onChange, onSelect, disabled }: {
+  symbols: SymbolEntry[];
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (sym: SymbolEntry) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!value.trim()) return symbols.slice(0, 40);
+    const q = value.toUpperCase();
+    const exact: SymbolEntry[] = [];
+    const startsWith: SymbolEntry[] = [];
+    const contains: SymbolEntry[] = [];
+    for (const s of symbols) {
+      if (s.symbol === q) { exact.push(s); continue; }
+      if (s.symbol.startsWith(q) || (s.name && s.name.toUpperCase().startsWith(q))) { startsWith.push(s); continue; }
+      if (s.symbol.includes(q) || (s.name && s.name.toUpperCase().includes(q))) contains.push(s);
+    }
+    return [...exact, ...startsWith, ...contains].slice(0, 40);
+  }, [symbols, value]);
+
+  useEffect(() => { setHighlightIdx(0); }, [filtered]);
+
+  useEffect(() => {
+    if (open && listRef.current) {
+      const el = listRef.current.children[highlightIdx] as HTMLElement;
+      if (el) el.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightIdx, open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder="Search ticker or company name..."
+        value={value}
+        disabled={disabled}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, filtered.length - 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)); }
+          else if (e.key === "Enter" && filtered.length > 0) {
+            onSelect(filtered[highlightIdx]);
+            setOpen(false);
+          }
+          else if (e.key === "Escape") setOpen(false);
+        }}
+        className="w-64 bg-term-bg border border-term-border rounded px-2 py-1 text-[11px] text-term-fg font-mono focus:border-term-amber outline-none"
+      />
+      {open && filtered.length > 0 && (
+        <div ref={listRef} className="absolute top-full left-0 mt-0.5 w-[420px] max-h-80 overflow-auto bg-term-panel border border-term-border rounded shadow-lg z-50">
+          <div className="sticky top-0 bg-term-panel border-b border-term-border px-2 py-1 flex text-[9px] text-term-amber font-bold">
+            <span className="w-16 shrink-0">TICKER</span>
+            <span className="flex-1">COMPANY NAME</span>
+          </div>
+          {filtered.map((s, i) => (
+            <button
+              key={s.symbol}
+              className={cn("w-full text-left px-2 py-1.5 text-[11px] flex items-center border-b border-term-border/20 transition-colors",
+                i === highlightIdx ? "bg-term-amber/20" : "hover:bg-term-amber/10")}
+              onClick={() => { onSelect(s); setOpen(false); }}
+              onMouseEnter={() => setHighlightIdx(i)}
+            >
+              <span className="font-mono font-bold text-term-fg w-16 shrink-0">{s.symbol}</span>
+              <span className="text-term-muted truncate flex-1">{s.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function NARV() {
   const [selectedCycle, setSelectedCycle] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState<string>("ALL");
@@ -106,11 +199,11 @@ export function NARV() {
   const [hoursFilter, setHoursFilter] = useState(72);
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
   const [reqSymbol, setReqSymbol] = useState("");
+  const [reqDisplay, setReqDisplay] = useState("");
   const [reqAgents, setReqAgents] = useState<Set<string>>(new Set(["Alpha", "Bravo", "Charlie"]));
   const [reqStatus, setReqStatus] = useState<string | null>(null);
-  const [validatedName, setValidatedName] = useState<string | null>(null);
+  const [selectedSymbolName, setSelectedSymbolName] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
-  const [showQueue, setShowQueue] = useState(false);
   const queryClient = useQueryClient();
   const [sortKey, setSortKey] = useState<SortKey>("started_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -123,6 +216,17 @@ export function NARV() {
       setSortDir(key === "started_at" ? "desc" : "asc");
     }
   };
+
+  const { data: symbolsData } = useQuery({
+    queryKey: ["narv-symbols"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/narrative/symbols`);
+      return res.json();
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+    refetchInterval: 24 * 60 * 60 * 1000,
+  });
+  const allSymbols: SymbolEntry[] = symbolsData?.symbols || [];
 
   const { data: cyclesData, isLoading } = useQuery({
     queryKey: ["narv-cycles", hoursFilter],
@@ -144,11 +248,10 @@ export function NARV() {
   const activeRequests: PendingRequest[] = (requestsData?.requests || []).filter((r: PendingRequest) => r.status === "pending" || r.status === "running" || r.status === "timeout");
 
   const validateAndSubmit = async () => {
-    const sym = reqSymbol.trim().toUpperCase();
+    const sym = reqSymbol ? reqSymbol.trim().toUpperCase() : reqDisplay.trim().toUpperCase().replace(/[^A-Z]/g, "");
     if (!sym) return;
     setValidating(true);
     setReqStatus(null);
-    setValidatedName(null);
     try {
       const vRes = await fetch(`${BASE}/narrative/validate-symbol/${sym}`);
       const vData = await vRes.json();
@@ -158,17 +261,17 @@ export function NARV() {
         setTimeout(() => setReqStatus(null), 4000);
         return;
       }
-      setValidatedName(vData.name);
-      setReqStatus(`✓ ${vData.name}`);
+      setSelectedSymbolName(vData.name);
+      setReqStatus(`Submitted: ${sym} — ${vData.name}`);
       const res = await fetch(`${BASE}/narrative/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbol: sym, agents: Array.from(reqAgents), requested_by: "operator" }),
       });
       if (!res.ok) throw new Error(await res.text());
-      setReqStatus(`Submitted: ${sym} — ${vData.name}`);
       setReqSymbol("");
-      setValidatedName(null);
+      setReqDisplay("");
+      setSelectedSymbolName(null);
       queryClient.invalidateQueries({ queryKey: ["narv-requests"] });
       setTimeout(() => setReqStatus(null), 4000);
     } catch (e: any) {
@@ -182,6 +285,17 @@ export function NARV() {
   const cancelRequest = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`${BASE}/narrative/requests/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["narv-requests"] });
+    },
+  });
+
+  const resubmitRequest = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`${BASE}/narrative/requests/${id}/resubmit`, { method: "POST" });
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
@@ -314,108 +428,134 @@ export function NARV() {
             <option value={72}>3d</option>
             <option value={168}>7d</option>
           </select>
-          <div className="ml-auto flex items-center gap-1.5 border border-term-amber/40 rounded px-2 py-1 bg-term-amber/5">
-            <span className="text-[9px] text-term-amber font-bold tracking-wide">REQUEST:</span>
-            <input type="text" placeholder="TICKER" value={reqSymbol}
-              onChange={(e) => setReqSymbol(e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 6))}
-              onKeyDown={(e) => { if (e.key === "Enter" && reqSymbol.trim()) validateAndSubmit(); }}
-              className="w-16 bg-term-bg border border-term-border rounded px-1.5 py-0.5 text-[10px] text-term-fg font-mono uppercase focus:border-term-amber outline-none" />
-            <div className="flex gap-0.5">
+        </div>
+      </div>
+
+      {/* Pipeline User Request */}
+      <div className="panel">
+        <div className="panel-header">
+          <span>PIPELINE USER REQUEST</span>
+          <span className="sub-header normal-case tracking-normal font-normal">
+            {activeRequests.length} active
+          </span>
+        </div>
+        <div className="p-2 flex gap-3 items-start">
+          <div className="flex items-center gap-2 flex-1">
+            <SymbolAutocomplete
+              symbols={allSymbols}
+              value={reqDisplay}
+              onChange={(v) => { setReqDisplay(v); setReqSymbol(""); setSelectedSymbolName(null); }}
+              onSelect={(s) => { setReqSymbol(s.symbol); setReqDisplay(`${s.symbol} — ${s.name}`); setSelectedSymbolName(s.name); }}
+              disabled={validating}
+            />
+            <div className="flex flex-col gap-1">
               {AGENTS.map((a) => (
-                <button key={a} onClick={() => toggleReqAgent(a)}
-                  className={cn("px-1.5 py-0.5 text-[8px] font-bold rounded transition-colors",
-                    reqAgents.has(a) ? "text-black" : "text-term-muted border border-term-border")}
-                  style={reqAgents.has(a) ? { backgroundColor: COLORS[a] } : undefined}>
-                  {a[0]}
-                </button>
+                <label key={a} className="flex items-center gap-1.5 cursor-pointer select-none" onClick={() => toggleReqAgent(a)}>
+                  <span className={cn("w-3 h-3 rounded-sm border flex items-center justify-center text-[8px] font-bold transition-colors",
+                    reqAgents.has(a) ? "border-transparent text-black" : "border-term-border text-transparent")}
+                    style={reqAgents.has(a) ? { backgroundColor: COLORS[a] } : undefined}>
+                    {reqAgents.has(a) ? "✓" : ""}
+                  </span>
+                  <span className={cn("text-[10px] font-bold", reqAgents.has(a) ? "text-term-fg" : "text-term-muted")}
+                    style={reqAgents.has(a) ? { color: COLORS[a] } : undefined}>
+                    {a}
+                  </span>
+                </label>
               ))}
             </div>
-            <button onClick={() => { if (reqSymbol.trim()) validateAndSubmit(); }}
-              disabled={!reqSymbol.trim() || validating}
-              className="px-2 py-0.5 text-[9px] font-bold bg-term-amber text-black rounded hover:bg-term-amber/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
-              {validating ? "..." : "GO"}
+            <button onClick={() => { if (reqSymbol || reqDisplay.trim()) validateAndSubmit(); }}
+              disabled={(!reqSymbol && !reqDisplay.trim()) || validating}
+              className="px-3 py-1.5 text-[10px] font-bold bg-term-amber text-black rounded hover:bg-term-amber/80 disabled:opacity-30 disabled:cursor-not-allowed transition-colors self-center">
+              {validating ? "VALIDATING..." : "SUBMIT"}
             </button>
-            {reqStatus && <span className={cn("text-[9px] font-mono max-w-48 truncate",
+            {reqStatus && <span className={cn("text-[10px] font-mono max-w-64 truncate self-center",
               reqStatus.startsWith("Error") || reqStatus.includes("not a valid") ? "text-red-400" : "text-green-400")}>{reqStatus}</span>}
-            {activeRequests.length > 0 && (
-              <button onClick={() => setShowQueue(!showQueue)}
-                className="text-[9px] text-term-amber font-mono hover:text-term-fg transition-colors">
-                {activeRequests.length} queued {showQueue ? "▲" : "▼"}
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Request Queue */}
-      {showQueue && activeRequests.length > 0 && (
-        <div className="panel">
-          <div className="panel-header">
-            <span>REQUEST QUEUE</span>
-            <span className="sub-header normal-case tracking-normal font-normal">
-              {activeRequests.length} active
-            </span>
-          </div>
-          <div className="overflow-auto max-h-32">
-            <table className="w-full text-[10px]">
-              <thead>
-                <tr className="text-term-amber text-left border-b border-term-border">
-                  <th className="px-2 py-1">ID</th>
-                  <th className="px-2 py-1">SYMBOL</th>
-                  <th className="px-2 py-1">AGENT</th>
-                  <th className="px-2 py-1">STATUS</th>
-                  <th className="px-2 py-1">REQUESTED</th>
-                  <th className="px-2 py-1">BY</th>
-                  <th className="px-2 py-1 text-center">ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeRequests.map((r: any) => (
-                  <tr key={r.id} className={cn("border-b border-term-border/30",
-                    r.status === "timeout" ? "opacity-50" : "")}>
-                    <td className="px-2 py-1 text-term-muted font-mono">{r.id}</td>
-                    <td className="px-2 py-1 font-mono font-bold text-term-fg">{r.symbol}</td>
-                    <td className="px-2 py-1">
-                      {(r.agents || []).map((a: string) => (
-                        <span key={a} className="font-bold mr-1" style={{ color: COLORS[a] || "#999" }}>{a}</span>
-                      ))}
-                    </td>
-                    <td className="px-2 py-1">
-                      <span className={cn("text-[9px]",
-                        r.status === "running" ? "text-term-amber" :
-                        r.status === "timeout" ? "text-red-400" : "text-term-muted"
-                      )}>
-                        {r.status === "running" ? "● running" :
-                         r.status === "timeout" ? "✕ timeout" : "pending"}
+      {/* Request Queue — always visible */}
+      <div className="panel">
+        <div className="panel-header">
+          <span>REQUEST QUEUE</span>
+          <span className="sub-header normal-case tracking-normal font-normal">
+            {activeRequests.length} active
+          </span>
+        </div>
+        <div className="overflow-auto max-h-40">
+          <table className="w-full text-[10px]">
+            <thead>
+              <tr className="text-term-amber text-left border-b border-term-border">
+                <th className="px-2 py-1">ID</th>
+                <th className="px-2 py-1">SYMBOL</th>
+                <th className="px-2 py-1">AGENT</th>
+                <th className="px-2 py-1">STATUS</th>
+                <th className="px-2 py-1">REQUESTED</th>
+                <th className="px-2 py-1">BY</th>
+                <th className="px-2 py-1 text-center">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeRequests.length === 0 && (
+                <tr><td colSpan={7} className="px-2 py-3 text-center text-term-muted">No active requests</td></tr>
+              )}
+              {activeRequests.map((r: any) => (
+                <tr key={r.id} className="border-b border-term-border/30">
+                  <td className="px-2 py-1 text-term-muted font-mono">{r.id}</td>
+                  <td className="px-2 py-1 font-mono font-bold text-term-fg">{r.symbol}</td>
+                  <td className="px-2 py-1">
+                    {(r.agents || []).map((a: string) => (
+                      <span key={a} className="font-bold mr-1" style={{ color: COLORS[a] || "#999" }}>{a}</span>
+                    ))}
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className={cn("text-[9px]",
+                      r.status === "running" ? "text-term-amber" :
+                      r.status === "timeout" ? "text-red-400" : "text-term-muted"
+                    )}>
+                      {r.status === "running" ? "● running" :
+                       r.status === "timeout" ? "✕ timeout" : "pending"}
+                    </span>
+                    {r.status === "running" && r.picked_up_at && (
+                      <span className="text-[8px] text-term-muted ml-1">
+                        {duration(r.picked_up_at, new Date().toISOString())}
                       </span>
-                      {r.status === "running" && r.picked_up_at && (
-                        <span className="text-[8px] text-term-muted ml-1">
-                          {duration(r.picked_up_at, new Date().toISOString())}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-1 text-term-muted">
-                      {new Date(r.requested_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
-                    </td>
-                    <td className="px-2 py-1 text-term-muted">{r.requested_by}</td>
-                    <td className="px-2 py-1 text-center">
-                      {r.status !== "timeout" ? (
+                    )}
+                  </td>
+                  <td className="px-2 py-1 text-term-muted">
+                    {new Date(r.requested_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}
+                  </td>
+                  <td className="px-2 py-1 text-term-muted">{r.requested_by}</td>
+                  <td className="px-2 py-1 text-center">
+                    <div className="inline-flex gap-1">
+                      {r.status === "timeout" ? (
+                        <>
+                          <button
+                            onClick={() => resubmitRequest.mutate(r.id)}
+                            disabled={resubmitRequest.isPending}
+                            className="px-1.5 py-0.5 text-[8px] font-bold bg-term-amber/20 text-term-amber border border-term-amber/30 rounded hover:bg-term-amber/40 disabled:opacity-30 transition-colors"
+                          >RESUBMIT</button>
+                          <button
+                            onClick={() => cancelRequest.mutate(r.id)}
+                            disabled={cancelRequest.isPending}
+                            className="px-1.5 py-0.5 text-[8px] font-bold bg-red-900/40 text-red-400 border border-red-800/50 rounded hover:bg-red-900/60 disabled:opacity-30 transition-colors"
+                          >CANCEL</button>
+                        </>
+                      ) : (
                         <button
                           onClick={() => cancelRequest.mutate(r.id)}
                           disabled={cancelRequest.isPending}
                           className="px-1.5 py-0.5 text-[8px] font-bold bg-red-900/40 text-red-400 border border-red-800/50 rounded hover:bg-red-900/60 disabled:opacity-30 transition-colors"
                         >CANCEL</button>
-                      ) : (
-                        <span className="text-[8px] text-red-400/50">expired</span>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* Main Layout: Table + Detail */}
       <div className="flex gap-3 flex-1 min-h-0">
@@ -514,7 +654,7 @@ export function NARV() {
                 <div className="panel">
                   <div className="panel-header">
                     <span style={{ color: COLORS[conversation.cycle?.agent] || "#fff" }}>
-                      {conversation.cycle?.agent} &mdash; {conversation.cycle?.symbol}{conversation.cycle?.company_name && <span className="text-term-muted font-normal text-[11px] ml-2">{conversation.cycle.company_name}</span>}{conversation.cycle?.company_name && <span className="text-term-muted font-normal text-[11px] ml-2">{conversation.cycle.company_name}</span>}
+                      {conversation.cycle?.agent} &mdash; {conversation.cycle?.symbol}{conversation.cycle?.company_name && <span className="text-term-muted font-normal text-[11px] ml-2">{conversation.cycle.company_name}</span>}
                     </span>
                     <div className="flex items-center gap-2">
                       {conversation.cycle?.final_rating && (

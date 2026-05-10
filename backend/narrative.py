@@ -611,6 +611,57 @@ def complete_request(request_id: int, cycle_id: str | None = None):
     return {"id": request_id, "status": "complete", "cycle_id": cycle_id}
 
 
+@narrative_router.post("/requests/{request_id}/resubmit")
+def resubmit_request(request_id: int):
+    """Clone a timed-out or cancelled request as a new pending request."""
+    try:
+        with get_cmv4_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """SELECT symbol, agents, requested_by, notes
+                   FROM pipeline_requests WHERE id = %s AND status IN ('timeout', 'complete')""",
+                (request_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Request not found or not eligible for resubmit")
+            symbol, agents, requested_by, notes = row
+            resubmit_note = f"resubmit of #{request_id}"
+            if notes:
+                resubmit_note = f"{notes} | {resubmit_note}"
+            created = []
+            for agent in (agents or ["Alpha"]):
+                cur.execute(
+                    """INSERT INTO pipeline_requests (symbol, agents, requested_by, notes)
+                       VALUES (%s, %s, %s, %s) RETURNING id, requested_at""",
+                    (symbol, [agent], requested_by, resubmit_note),
+                )
+                r = cur.fetchone()
+                created.append({"id": r[0], "agent": agent, "requested_at": str(r[1])})
+            conn.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "ids": [c["id"] for c in created],
+        "symbol": symbol,
+        "status": "pending",
+        "resubmitted_from": request_id,
+    }
+
+
+@narrative_router.get("/symbols")
+def list_symbols():
+    """Return cached symbol list from symbol_names table."""
+    try:
+        with get_cmv4_conn() as conn, conn.cursor() as cur:
+            cur.execute("SELECT symbol, company_name FROM symbol_names ORDER BY symbol")
+            rows = [{"symbol": r[0], "name": r[1]} for r in cur.fetchall()]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"symbols": rows, "count": len(rows)}
+
+
 @narrative_router.get("/validate-symbol/{symbol}")
 def validate_symbol(symbol: str):
     symbol = symbol.strip().upper()
@@ -642,7 +693,7 @@ def cancel_request(request_id: int):
         with get_cmv4_conn() as conn, conn.cursor() as cur:
             cur.execute(
                 """DELETE FROM pipeline_requests
-                   WHERE id = %s AND status IN ('pending', 'running')
+                   WHERE id = %s AND status IN ('pending', 'running', 'timeout')
                    RETURNING id, symbol, status""",
                 (request_id,),
             )
