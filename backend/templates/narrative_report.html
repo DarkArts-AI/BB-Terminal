@@ -101,6 +101,14 @@ tr:nth-child(even) td { background: #fafafa; }
 {% if cycle.thread_id %}<tr><td>Thread ID</td><td><code>{{ cycle.thread_id }}</code></td></tr>{% endif %}
 </table>
 
+{% if internal_notes %}
+<div class="callout" style="background: #e3f2fd; border-left-color: #1565c0; margin-top: 15px;">
+  <strong style="color: #1565c0;">Internal Notes</strong>
+  <span style="font-size: 8pt; color: #666; margin-left: 8px;">({{ internal_notes.updated_by }}, {{ internal_notes.updated_at }})</span>
+  <div style="margin-top: 6px;">{{ internal_notes.content|md|safe }}</div>
+</div>
+{% endif %}
+
 {% if analysts %}
 <h2>2. Analyst Channel</h2>
 <div class="chat-box">
@@ -241,6 +249,14 @@ tr:nth-child(even) td { background: #fafafa; }
 <strong>Rating:</strong> <span class="rating-badge rating-{{ cycle_detail.final_rating|lower|replace(' ', '') }}">{{ cycle_detail.final_rating }}</span> &nbsp;|&nbsp;
 <strong>Date:</strong> {{ cycle_detail.completed_at }}
 </div>
+
+{% if cycle_detail.internal_notes %}
+<div class="callout" style="background: #e3f2fd; border-left-color: #1565c0;">
+  <strong style="color: #1565c0;">Internal Notes</strong>
+  <span style="font-size: 8pt; color: #666; margin-left: 8px;">({{ cycle_detail.internal_notes.updated_by }}, {{ cycle_detail.internal_notes.updated_at }})</span>
+  <div style="margin-top: 6px;">{{ cycle_detail.internal_notes.content|md|safe }}</div>
+</div>
+{% endif %}
 
 {% for s in cycle_detail.stages %}
 <div class="chat-box">

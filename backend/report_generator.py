@@ -332,10 +332,24 @@ def load_cycle_data(cur, cycle_id):
     analysts = [s for s in stages if "analyst" in s["sub_stage"].lower()]
     other_stages = [s for s in stages if "analyst" not in s["sub_stage"].lower()]
 
+    cur.execute(
+        "SELECT content, updated_by, updated_at FROM cycle_notes WHERE cycle_id = %s",
+        (cycle_id,),
+    )
+    notes_row = cur.fetchone()
+    internal_notes = None
+    if notes_row and notes_row[0]:
+        internal_notes = {
+            "content": notes_row[0],
+            "updated_by": notes_row[1],
+            "updated_at": fmt_ts(notes_row[2]),
+        }
+
     return {
         "cycle": cycle, "stages": stages, "analysts": analysts,
         "other_stages": other_stages, "debate_rounds": debate_rounds,
         "debate_rounds_grouped": debate_rounds_grouped, "decision": decision,
+        "internal_notes": internal_notes,
     }
 
 
@@ -511,6 +525,7 @@ def generate_case_study(symbol: str):
                         "final_rating": cr["final_rating"] or "—",
                         "completed_at": fmt_ts(cr["completed_at"]),
                         "stages": cd["other_stages"][:8],
+                        "internal_notes": cd.get("internal_notes"),
                     }
                     cycle_details.append(cd_entry)
 

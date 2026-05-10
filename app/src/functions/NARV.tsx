@@ -205,6 +205,8 @@ export function NARV() {
   const [selectedSymbolName, setSelectedSymbolName] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
   const queryClient = useQueryClient();
+  const [noteText, setNoteText] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("started_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -377,6 +379,41 @@ export function NARV() {
       return res.json();
     },
     enabled: !!selectedCycle,
+  });
+
+  const { data: notesData } = useQuery({
+    queryKey: ["cycle-notes", selectedCycle],
+    queryFn: async () => {
+      if (!selectedCycle) return null;
+      const res = await fetch(`${BASE}/narrative/notes/${selectedCycle}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!selectedCycle,
+  });
+
+  useEffect(() => {
+    if (notesData) {
+      setNoteText(notesData.content || "");
+      setNoteSaved(false);
+    }
+  }, [notesData]);
+
+  const saveNotes = useMutation({
+    mutationFn: async ({ cycleId, content }: { cycleId: string; content: string }) => {
+      const res = await fetch(`${BASE}/narrative/notes/${cycleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, updated_by: "operator" }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      setNoteSaved(true);
+      if (selectedCycle) queryClient.invalidateQueries({ queryKey: ["cycle-notes", selectedCycle] });
+      setTimeout(() => setNoteSaved(false), 2000);
+    },
   });
 
   return (
@@ -677,6 +714,31 @@ export function NARV() {
                       <button onClick={() => downloadCyclePdf(selectedCycle)} className="px-2 py-0.5 text-[10px] font-bold bg-term-amber/20 text-term-amber border border-term-amber/30 rounded hover:bg-term-amber/30">PDF</button>
                       <button onClick={() => downloadCaseStudyPdf(conversation.cycle?.symbol)} className="px-2 py-0.5 text-[10px] font-bold bg-[#04600B]/20 text-[#04600B] border border-[#04600B]/30 rounded hover:bg-[#04600B]/30">CASE STUDY</button>
                     </div>
+                  </div>
+                </div>
+
+                <div className="panel">
+                  <div className="panel-header">
+                    <span>INTERNAL NOTES</span>
+                    <div className="flex items-center gap-2">
+                      {noteSaved && <span className="text-[9px] text-green-400">Saved</span>}
+                      {notesData?.updated_at && <span className="text-[9px] text-term-muted">Last: {new Date(notesData.updated_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })}</span>}
+                      <button
+                        onClick={() => { if (selectedCycle) saveNotes.mutate({ cycleId: selectedCycle, content: noteText }); }}
+                        disabled={saveNotes.isPending}
+                        className="px-2 py-0.5 text-[9px] font-bold bg-blue-900/30 text-blue-300 border border-blue-700/40 rounded hover:bg-blue-900/50 disabled:opacity-30 transition-colors"
+                      >{saveNotes.isPending ? "..." : "SAVE"}</button>
+                    </div>
+                  </div>
+                  <div className="p-2">
+                    <textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      onBlur={() => { if (selectedCycle && noteText !== (notesData?.content || "")) saveNotes.mutate({ cycleId: selectedCycle, content: noteText }); }}
+                      placeholder="Add internal notes for this cycle... (included in PDF/CS reports)"
+                      className="w-full bg-term-bg border border-term-border rounded px-2 py-1.5 text-[10px] text-term-fg font-mono resize-y min-h-[48px] max-h-32 focus:border-blue-500 outline-none placeholder:text-term-muted/50"
+                      rows={2}
+                    />
                   </div>
                 </div>
 

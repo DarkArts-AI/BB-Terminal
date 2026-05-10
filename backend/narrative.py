@@ -662,6 +662,58 @@ def list_symbols():
     return {"symbols": rows, "count": len(rows)}
 
 
+class NoteBody(BaseModel):
+    content: str
+    updated_by: str = "operator"
+
+
+@narrative_router.get("/notes/{cycle_id}")
+def get_notes(cycle_id: str):
+    try:
+        with get_cmv4_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT content, updated_by, updated_at FROM cycle_notes WHERE cycle_id = %s",
+                (cycle_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                return {"cycle_id": cycle_id, "content": "", "updated_by": None, "updated_at": None}
+            return {
+                "cycle_id": cycle_id,
+                "content": row[0],
+                "updated_by": row[1],
+                "updated_at": str(row[2]) if row[2] else None,
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@narrative_router.put("/notes/{cycle_id}")
+def save_notes(cycle_id: str, body: NoteBody):
+    try:
+        with get_cmv4_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO cycle_notes (cycle_id, content, updated_by, updated_at)
+                   VALUES (%s, %s, %s, NOW())
+                   ON CONFLICT (cycle_id) DO UPDATE
+                   SET content = EXCLUDED.content,
+                       updated_by = EXCLUDED.updated_by,
+                       updated_at = NOW()
+                   RETURNING updated_at""",
+                (cycle_id, body.content, body.updated_by),
+            )
+            updated_at = cur.fetchone()[0]
+            conn.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "cycle_id": cycle_id,
+        "content": body.content,
+        "updated_by": body.updated_by,
+        "updated_at": str(updated_at),
+    }
+
+
 @narrative_router.get("/validate-symbol/{symbol}")
 def validate_symbol(symbol: str):
     symbol = symbol.strip().upper()
