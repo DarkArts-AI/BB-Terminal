@@ -728,7 +728,7 @@ export function NARV() {
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       placeholder="Add internal notes for this cycle... (included in PDF/CS reports)"
-                      className="w-full bg-term-bg border border-term-border rounded px-2 py-1.5 text-[11px] text-term-fg font-mono resize-y min-h-[200px] focus:border-blue-500 outline-none placeholder:text-term-muted/50"
+                      className="w-full bg-term-bg border border-term-border rounded px-2 py-1.5 text-[11px] text-term-fg font-mono resize-y h-[140px] focus:border-blue-500 outline-none placeholder:text-term-muted/50"
                       rows={10}
                     />
                     <div className="flex justify-end gap-2 mt-1.5">
@@ -748,7 +748,7 @@ export function NARV() {
                 {conversation.stages?.filter((s: any) => s.stage === "Analysts" || s.sub_stage?.includes("analyst")).length > 0 && (
                   <div className="panel">
                     <div className="panel-header"><span>#research-{conversation.cycle?.symbol}</span></div>
-                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto min-h-[120px] max-h-[800px]">
+                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto h-[140px] max-h-[800px]">
                       {conversation.stages
                         .filter((s: any) => s.stage === "Analysts" || s.sub_stage?.includes("analyst"))
                         .map((s: any, i: number) => {
@@ -763,7 +763,7 @@ export function NARV() {
                 {conversation.debate_rounds?.length > 0 && (
                   <div className="panel">
                     <div className="panel-header"><span>#debate-{conversation.cycle?.symbol}</span></div>
-                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto min-h-[120px] max-h-[800px]">
+                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto h-[140px] max-h-[800px]">
                       {conversation.debate_rounds.map((d: any, i: number) => {
                         const style = getSpeakerStyle(d.speaker_role);
                         return (
@@ -789,7 +789,7 @@ export function NARV() {
                     return (
                       <div key={i} className="panel">
                         <div className="panel-header"><span>#{s.stage?.toLowerCase()}-{conversation.cycle?.symbol}</span></div>
-                        <div className="p-3 bg-term-bg/50 resize-y overflow-auto min-h-[80px] max-h-[800px]">
+                        <div className="p-3 bg-term-bg/50 resize-y overflow-auto h-[140px] max-h-[800px]">
                           <ChatMessage speaker={s.speaker_role} label={style.label} color={style.color} content={content} time={s.timestamp} />
                         </div>
                       </div>
@@ -799,7 +799,7 @@ export function NARV() {
                 {conversation.decision && (
                   <div className="panel">
                     <div className="panel-header"><span>#decision-{conversation.cycle?.symbol}</span></div>
-                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto min-h-[80px] max-h-[800px]">
+                    <div className="p-3 bg-term-bg/50 resize-y overflow-auto h-[140px] max-h-[800px]">
                       <ChatMessage speaker="Portfolio Manager" label="PM" color="#04600B"
                         content={`RATING: ${conversation.decision.rating || "—"}\nDIRECTION: ${conversation.decision.direction || "—"}\nCONVICTION: ${conversation.decision.conviction || "—"}\n\n${conversation.decision.executive_summary || ""}\n\nTHESIS: ${conversation.decision.investment_thesis || ""}\n\nRISK: ${conversation.decision.risk_notes || ""}`}
                       />
