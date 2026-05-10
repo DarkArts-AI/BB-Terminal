@@ -727,11 +727,21 @@ export function NARV() {
                     <textarea
                       value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
-                      onBlur={() => { if (selectedCycle && noteText !== (notesData?.content || "")) saveNotes.mutate({ cycleId: selectedCycle, content: noteText }); }}
                       placeholder="Add internal notes for this cycle... (included in PDF/CS reports)"
-                      className="w-full bg-term-bg border border-term-border rounded px-2 py-1.5 text-[10px] text-term-fg font-mono resize-y min-h-[48px] max-h-32 focus:border-blue-500 outline-none placeholder:text-term-muted/50"
-                      rows={2}
+                      className="w-full bg-term-bg border border-term-border rounded px-2 py-1.5 text-[11px] text-term-fg font-mono resize-y min-h-[120px] max-h-64 focus:border-blue-500 outline-none placeholder:text-term-muted/50"
+                      rows={6}
                     />
+                    <div className="flex justify-end gap-2 mt-1.5">
+                      <button
+                        onClick={() => setNoteText(notesData?.content || "")}
+                        className="px-3 py-1 text-[9px] font-bold text-term-muted border border-term-border rounded hover:text-term-fg hover:border-term-fg/50 transition-colors"
+                      >CANCEL</button>
+                      <button
+                        onClick={() => { if (selectedCycle) saveNotes.mutate({ cycleId: selectedCycle, content: noteText }); }}
+                        disabled={saveNotes.isPending}
+                        className="px-3 py-1 text-[9px] font-bold bg-blue-900/30 text-blue-300 border border-blue-700/40 rounded hover:bg-blue-900/50 disabled:opacity-30 transition-colors"
+                      >{saveNotes.isPending ? "SAVING..." : "SAVE"}</button>
+                    </div>
                   </div>
                 </div>
 
