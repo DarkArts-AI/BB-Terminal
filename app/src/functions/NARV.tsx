@@ -58,6 +58,10 @@ interface SymbolEntry {
   symbol: string; name: string;
 }
 
+interface PriceData {
+  price: number | null; change: number | null; change_pct: number | null; prev_close: number | null;
+}
+
 type SortKey = "agent" | "symbol" | "final_rating" | "status" | "duration" | "total_tokens" | "source" | "started_at";
 type SortDir = "asc" | "desc";
 
@@ -238,6 +242,28 @@ export function NARV() {
     },
     refetchInterval: 30_000,
   });
+
+  const cycleSymbols = useMemo(() => {
+    const syms = new Set<string>();
+    (cyclesData?.cycles || []).forEach((c: CycleRow) => { if (c.symbol) syms.add(c.symbol); });
+    return Array.from(syms).sort();
+  }, [cyclesData]);
+
+  const { data: pricesData } = useQuery({
+    queryKey: ["narv-prices", cycleSymbols.join(",")],
+    queryFn: async () => {
+      if (cycleSymbols.length === 0) return { prices: {} };
+      const res = await fetch(`${BASE}/narrative/prices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols: cycleSymbols }),
+      });
+      return res.json();
+    },
+    enabled: cycleSymbols.length > 0,
+    refetchInterval: 60_000,
+  });
+  const prices: Record<string, PriceData> = pricesData?.prices || {};
 
   const { data: requestsData } = useQuery({
     queryKey: ["narv-requests"],
@@ -595,6 +621,8 @@ export function NARV() {
               <thead className="sticky top-0 bg-term-panel z-10">
                 <tr className="text-term-amber text-left border-b border-term-border">
                   <SortHeader label="AGENT" sortKey="agent" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <th className="px-2 py-1.5 font-bold">PRICE</th>
+                  <th className="px-2 py-1.5 font-bold">CHG</th>
                   <SortHeader label="SYMBOL" sortKey="symbol" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortHeader label="RATING" sortKey="final_rating" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortHeader label="STATUS" sortKey="status" current={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -607,10 +635,10 @@ export function NARV() {
               </thead>
               <tbody>
                 {isLoading && (
-                  <tr><td colSpan={9} className="px-2 py-4 text-center text-term-muted">Loading cycles...</td></tr>
+                  <tr><td colSpan={11} className="px-2 py-4 text-center text-term-muted">Loading cycles...</td></tr>
                 )}
                 {!isLoading && sorted.length === 0 && (
-                  <tr><td colSpan={9} className="px-2 py-4 text-center text-term-muted">No cycles match filters</td></tr>
+                  <tr><td colSpan={11} className="px-2 py-4 text-center text-term-muted">No cycles match filters</td></tr>
                 )}
                 {sorted.map((c) => (
                   <tr key={c.cycle_id}
@@ -622,6 +650,16 @@ export function NARV() {
                   >
                     <td className="px-2 py-1.5">
                       <span className="font-bold" style={{ color: COLORS[c.agent] || "#999" }}>{c.agent}</span>
+                    </td>
+                    <td className="px-2 py-1.5 font-mono text-term-fg">
+                      {prices[c.symbol]?.price != null ? `$${prices[c.symbol].price!.toFixed(2)}` : "—"}
+                    </td>
+                    <td className="px-2 py-1.5 font-mono">
+                      {prices[c.symbol]?.change != null ? (
+                        <span className={prices[c.symbol].change! >= 0 ? "text-green-400" : "text-red-400"}>
+                          {prices[c.symbol].change! >= 0 ? "+" : ""}{prices[c.symbol].change!.toFixed(2)} ({prices[c.symbol].change_pct!.toFixed(1)}%)
+                        </span>
+                      ) : <span className="text-term-muted">—</span>}
                     </td>
                     <td className="px-2 py-1.5">
                       <span className="font-mono font-bold text-term-fg">{c.symbol}</span>

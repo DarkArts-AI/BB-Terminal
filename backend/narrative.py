@@ -8,6 +8,9 @@ from typing import Optional
 
 import urllib.request
 import json as _json
+import threading
+import time as _time
+import yfinance as yf
 
 from env_config import DB_DSN, CMV4_DSN
 
@@ -758,3 +761,71 @@ def cancel_request(request_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     return {"id": request_id, "cancelled": True, "was_status": row[2]}
+
+
+# ---------------------------------------------------------------------------
+# Live price data via yfinance (cached, batch-fetched)
+# ---------------------------------------------------------------------------
+
+_price_cache: dict[str, dict] = {}
+_price_cache_lock = threading.Lock()
+_price_cache_ts: float = 0
+_PRICE_TTL = 60  # refresh at most every 60s
+
+
+def _fetch_prices(symbols: list[str]) -> dict[str, dict]:
+    results: dict[str, dict] = {}
+    if not symbols:
+        return results
+    tickers = yf.Tickers(" ".join(symbols))
+    for sym in symbols:
+        try:
+            t = tickers.tickers.get(sym)
+            if not t:
+                continue
+            info = t.fast_info
+            price = float(info.last_price) if info.last_price else None
+            prev = float(info.previous_close) if info.previous_close else None
+            if price is not None and prev is not None and prev != 0:
+                change = price - prev
+                change_pct = (change / prev) * 100
+            else:
+                change = None
+                change_pct = None
+            results[sym] = {
+                "price": round(price, 2) if price else None,
+                "change": round(change, 2) if change is not None else None,
+                "change_pct": round(change_pct, 2) if change_pct is not None else None,
+                "prev_close": round(prev, 2) if prev else None,
+            }
+        except Exception:
+            results[sym] = {"price": None, "change": None, "change_pct": None, "prev_close": None}
+    return results
+
+
+@narrative_router.post("/prices")
+def get_prices(body: dict):
+    global _price_cache, _price_cache_ts
+    symbols = body.get("symbols", [])
+    if not symbols or not isinstance(symbols, list):
+        return {"prices": {}}
+    symbols = [s.upper().strip() for s in symbols[:200]]
+
+    now = _time.time()
+    with _price_cache_lock:
+        missing = [s for s in symbols if s not in _price_cache]
+        stale = now - _price_cache_ts > _PRICE_TTL
+
+    if missing or stale:
+        fetch_list = symbols if stale else missing
+        try:
+            fresh = _fetch_prices(fetch_list)
+            with _price_cache_lock:
+                _price_cache.update(fresh)
+                _price_cache_ts = now
+        except Exception:
+            pass
+
+    with _price_cache_lock:
+        result = {s: _price_cache.get(s, {}) for s in symbols}
+    return {"prices": result}
